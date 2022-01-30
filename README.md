@@ -547,6 +547,112 @@ Embeds a [Goteo] fund raising campaign widget.
 : The id of the project
 
 
+## Custom generators 
+
+I'm creating my own generators, here they are. :grin: 
+
+### Question (`customblocks.custom_generators.question`)
+
+This generator creates a question with radio buttonsfor every answer, and a button to check if the chosen answer is correct. 
+It creates a `div` element as a container, parses the question text as regular markdown, and then creates the inputs with the answers and the button to check the answer. 
+
+#### Parameters 
+
+`correct` (string) 
+: The correct answer to the question
+
+`answers` (string) 
+: The answers presented to the user. The answers are separated by a vertical bar (\|) and this list must explicitely include the correct answer. The answers will be shuffled.
+
+`unique_name` (string) 
+: The unique identifier of the question. It must be formated as a valid JS identifier (in short, no spaces nor dots). 
+
+So, the correct answer and possible answers are added as key/value pairs; all answers (the correct answer appears here, too) go inside a single key/value pair, every answer separated with a \|. 
+The last key/value pair is `unique_name="<question name>"` (the name attribute for the answer inputs). It must be **unique** for every question on a page. 
+
+You can pass keyless values. They will be added as classes to the question container div. 
+
+The question text/content must be indented. 
+
+#### Usage 
+
+Add customblocks to your Markdown instance extensions and configure the custom generator. A simple python file could look like this: 
+
+```python
+from markdown import Markdown
+
+source = """# Source
+
+Your markdown source text goes here.
+
+::: question correct="Of course!" answers="Sure|Maybe|Of course!" unique_name="loving_markdown"
+    Do you like markdown?
+"""
+
+md = Markdown(extensions=["customblocks"], extension_configs={
+	"customblocks": {
+		"generators": {
+			"question": "customblocks.custom_generators:question"
+		}
+	}
+}, output_format="html5")
+
+output = md.convert(source)
+```
+
+Example markdown 
+
+```markdown
+::: question correct="three" answers="two|three|four" name="crazy_numbers" darkgreen-box fg-yellow
+    Which is the result of 6 divided by 2?
+```
+
+Renders as: 
+
+```html
+<div class="question darkgreen-box fg-yellow">
+<p>Which is the result of 6 divided by 2? </p>
+<div class="answers">
+<input id="crazy_numbers_correct" name="crazy_numbers_correct" type="hidden" value="eerht" />
+<input id="owt" name="crazy_numbers" type="radio" value="three" />
+<label for="owt">two</label><br />
+<input id="ruof" name="crazy_numbers" type="radio" value="four" />
+<label for="ruof">four</label><br />
+<input id="eerht" name="crazy_numbers" type="radio" value="three" />
+<label for="eerht">three</label><br />
+</div>
+<button class="ok" data-correct="crazy_numbers_correct" data-question="crazy_numbers" onclick="checkAnswer(this)" type="button">Answer</button>
+</div>
+```
+
+In the `onclick="checkAnswer()"` we reference a JavaScript function available somewhere in your base template. It coud look like this: 
+
+```javascript
+function checkAnswer(origin) {
+var question_name = $(origin).attr("data-question");
+var correct_answer_element = $(origin).attr("data-correct");
+var correct_answer_id = $("#"+correct_answer_element).val();
+var correct_answer_label = $("label[for="+correct_answer_id+"]").text();
+var chosen_answer_id = $("input[name="+question_name+"]:checked").attr("id");
+var chosen_answer_label = $("label[for="+chosen_answer_id+"]").text();
+if(correct_answer_id == chosen_answer_id) {
+alert("Correct!");
+}
+else {
+alert("Hmmm... no. \n" + correct_answer_label);
+}
+$("input[name="+question_name+"]").attr("disabled", true);
+}
+```
+
+If you copy/paste this in your template, pay atention - it requires jQuery. 
+
+#### To do 
+
+- [ ] Automatically add the correct answer to the list of answers, in order to follow DRY principles 
+- [ ] Implement a flag to turn on/off answer shuffling 
+
+
 ## Generator tools
 
 Common code has been extracted from predefined generators.
@@ -555,7 +661,6 @@ If you need this functionality you are encouraged to use them.
 - Hyperscript: to generate html
 - PageInfo: to extract metadata from a webpage
 - Fetcher: to download resources with file based cache
-
 
 ### Hyperscript generation
 
@@ -645,6 +750,41 @@ response = fetcher.get('https://canvoki.net/codder')
 fetcher.remove('https://canvoki.net/codder')
 ```
 
+
+## Custom utils :) 
+
+### slugify 
+
+I added a slugify utility which makes my life much easier. 
+
+#### Parameters 
+
+`text` (string) 
+: The string to be slugified 
+
+`sep` (string, default="_") 
+: The separator put between words 
+
+`case` (string, default="lower_ascii") 
+: One of `lower`, `lower_case`, `casefold` 
+
+`percent_encode` (boolean, default=False) 
+: Encode non-ascii characters with percent characters 
+
+`normalize` (string, default="NFC")
+: Specify the normalization steps
+
+#### Usage 
+
+```python
+from customblocks.utils import slugify
+
+id = "my id"
+slugified_id = slugify(id) # my_id
+dashed_id = slugify(id, sep="-") # my-id
+```
+
+
 ## Release history
 
 ### markdown-customblocks 1.1.1 (2020-08-08)
@@ -729,9 +869,3 @@ fetcher.remove('https://canvoki.net/codder')
 			- link to the image
 	- lightbox
 	- sized
-
-
-
-
-
-
