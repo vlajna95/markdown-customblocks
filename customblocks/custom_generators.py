@@ -10,7 +10,7 @@ def question(ctx, correct, answers, unique_name, *args, **kwargs):
 	for i in options:
 		answer_id = slugify(i)[::-1]
 		if i == correct:
-			answer_list.append(E("input", type="hidden", id=question_name+"_correct", name=answer_id))
+			answer_list.insert(0, E("input", type="hidden", id=question_name+"_correct", name=question_name+"_correct", value=answer_id))
 		answer = E("input", type="radio", id=answer_id, name=question_name)
 		answer_label = E("label", i)
 		answer_label.set("for", answer_id)
